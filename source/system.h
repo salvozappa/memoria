@@ -405,7 +405,6 @@ int mouserely(void);
 bool app_has_focus(app_t *app);
 
 #include "libs/awe32rom.h"
-#include "libs/crtframe.h"
 #include "libs/thread.h"
 #ifdef __wasm__
 #define WA_CORO_IMPLEMENT_NANOSLEEP
@@ -6644,34 +6643,6 @@ static void app_sound_callback(APP_S16 *sample_pairs, int sample_pairs_count, vo
     thread_mutex_unlock(&context->mutex);
 }
 
-static void load_crt_frame_col(void *data, struct GIF_WHDR *whdr)
-{
-    APP_U32 *pixels = (APP_U32 *)data;
-    for (int i = 0; i < 1024 * 1024; ++i)
-    {
-        uint8_t v = whdr->bptr[i];
-        pixels[i] = (whdr->cpal[v].B << 16) | (whdr->cpal[v].G << 8) | (whdr->cpal[v].R);
-    }
-}
-
-static void load_crt_frame_alpha(void *data, struct GIF_WHDR *whdr)
-{
-    APP_U32 *pixels = (APP_U32 *)data;
-    for (int i = 0; i < 1024 * 1024; ++i)
-    {
-        uint8_t v = whdr->bptr[i];
-        pixels[i] = pixels[i] | (whdr->cpal[v].R << 24);
-    }
-}
-
-static APP_U32 *load_crt_frame(void)
-{
-    APP_U32 *pixels = (APP_U32 *)malloc(1024 * 1024 * sizeof(APP_U32));
-    memset(pixels, 0, 1024 * 1024 * sizeof(APP_U32));
-    GIF_Load(crtframecol, (long)sizeof(crtframecol), load_crt_frame_col, NULL, (void *)pixels, 0L);
-    GIF_Load(crtframealpha, (long)sizeof(crtframealpha), load_crt_frame_alpha, NULL, (void *)pixels, 0L);
-    return pixels;
-}
 
 static int app_proc(app_t *app, void *user_data)
 {
@@ -6799,11 +6770,6 @@ static int app_proc(app_t *app, void *user_data)
     crtemu_pc_t *crt = NULL;
 #else
     crtemu_pc_t *crt = crtemu_pc_create(NULL);
-#ifndef DISABLE_SCREEN_FRAME
-    APP_U32 *frame = load_crt_frame();
-    crtemu_pc_frame(crt, frame, 1024, 1024);
-    free(frame);
-#endif
 #endif
 
     // Create the frametimer instance, and set it to fixed 60hz update. This will ensure we never run faster than that,
@@ -7308,11 +7274,7 @@ static int app_proc(app_t *app, void *user_data)
         crt_time_us += delta_time_us;
         if (crt)
         {
-#ifndef DISABLE_SCREEN_FRAME
             crtemu_pc_present(crt, crt_time_us, screen_xbgr, width, height, 0xffffff, 0xff1a1a1a);
-#else
-            crtemu_pc_present(crt, crt_time_us, screen_xbgr, width, height, 0xffffff, 0xff000000);
-#endif
         }
         app_present(app, NULL, 1, 1, 0xffffff, 0xff1a1a1a);
     }
@@ -7495,8 +7457,6 @@ int main(int argc, char **argv)
 {
     (void)argc, (void)argv;
 
-    // bin2arr( "framecol.gif", "crtframecol.h", "crtframecol" );
-    // bin2arr( "framealpha.gif", "crtframealpha.h", "crtframealpha" );
     // bin2arr( "aweromgm.sf2", "awe32rom.h", "awe32rom" );
 
     struct app_context_t app_context;
