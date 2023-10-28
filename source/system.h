@@ -1,5 +1,5 @@
-#ifndef dos_h
-#define dos_h
+#ifndef system_h
+#define system_h
 
 enum videomode_t
 {
@@ -343,9 +343,9 @@ int mousey(void);
 int mouserelx(void);
 int mouserely(void);
 
-#endif /* dos_h */
+#endif /* system_h */
 
-#ifdef DOS_IMPLEMENTATION
+#ifdef SYSTEM_IMPLEMENTATION
 
 #ifndef NO_MAIN_DEF
 #ifdef main
@@ -5614,7 +5614,7 @@ struct user_thread_context_t
     thread_signal_t user_thread_terminated;
 };
 
-int dosmain(int argc, char *argv[]);
+int system_main(int argc, char *argv[]);
 
 #ifndef __wasm__
 static
@@ -5632,7 +5632,7 @@ WA_EXPORT(user_thread_proc)
 
     waitvbl();
 
-    int result = dosmain(context->app_context->argc, context->app_context->argv);
+    int result = system_main(context->app_context->argc, context->app_context->argv);
 
     thread_atomic_int_store(&context->user_thread_finished, 1);
     thread_signal_wait(&context->app_loop_finished, 5000);
@@ -7514,8 +7514,8 @@ int WINAPI __stdcall WinMain(HINSTANCE a, HINSTANCE b, char *c, int d)
 }
 #endif
 
-#endif /* DOS_IMPLEMENTATION */
+#endif /* SYSTEM_IMPLEMENTATION */
 
 #ifndef NO_MAIN_DEF
-#define main dosmain
+#define main system_main
 #endif
